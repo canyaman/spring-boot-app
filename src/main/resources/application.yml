@@ -1,0 +1,41 @@
+spring:
+  #profiles.group.local:
+  #profiles.group.container:
+  #profiles.active: container
+  application.name: spring-boot-app
+  jackson:
+    timeZone: Europe/Istanbul
+# Server
+server:
+  port: 8080
+  forwardHeadersStrategy: NATIVE
+# Logging
+logging:
+  level:
+    me.yaman.can: INFO
+# Swagger Config
+springdoc:
+  swaggerUi:
+    path: /
+    enabled: true
+  apiDocs.enabled: true
+  packagesToScan: me.yaman.can
+---
+spring.config.activate.onCloudPlatform: kubernetes
+
+# Actuator Service
+management:
+  server.port: 9090
+  endpoint.health:
+    showDetails: never
+  endpoints:
+    web:
+      exposure.include: info, health, prometheus
+    health.sensitive: false
+  metrics.tags.application: ${spring.application.name}
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState, diskSpace, ping
+---
