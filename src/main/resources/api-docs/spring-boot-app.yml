@@ -1,0 +1,23 @@
+openapi: 3.0.1
+info: {title: spring-boot-app, description: Spring boot application auto generated
+    OpenApi doc., version: 0.0.1-SNAPSHOT}
+servers:
+- {url: 'http://spring-boot-app:80', description: Generated server url}
+paths:
+  /time/now:
+    get:
+      tags: [time-controller]
+      operationId: now
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema: {$ref: '#/components/schemas/CurrentTime'}
+components:
+  schemas:
+    CurrentTime:
+      required: [now]
+      type: object
+      properties:
+        now: {type: string, format: date-time}

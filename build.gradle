@@ -11,6 +11,10 @@ plugins {
 	id "com.gorylenko.gradle-git-properties" version "${gitGradleVersion}"
 	// Docker
 	id "com.google.cloud.tools.jib" version "${jibVersion}"
+	// OpenApi
+	id "org.openapi.generator" version "${openApiGeneratorVersion}"
+	// Asciidoc
+	id "org.asciidoctor.jvm.convert" version "${asciidoctorVersion}"
 }
 apply from: 'version.gradle'
 
@@ -102,7 +106,15 @@ springBoot {
 }
 
 test {
-	useJUnitPlatform()
+	useJUnitPlatform{
+		excludeTags 'open-api'
+	}
+}
+
+task openApiTest(type: Test) {
+	useJUnitPlatform {
+		includeTags 'open-api'
+	}
 }
 
 task ktlint(type: JavaExec, group: "verification") {
@@ -132,3 +144,64 @@ jib {
 	}
 	allowInsecureRegistries = true
 }
+
+task openApiAsciidoc(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
+	//dependsOn openApiTest
+	generatorName = "asciidoc"
+	outputDir = "$buildDir/asciidoc".toString()
+	inputSpec = "$rootDir/src/main/resources/api-docs/${projectName}.yml".toString()
+	// internal-generation
+	additionalProperties = [
+			//useIntroduction: "true",
+			infoEmail: "can+info@yaman.me",
+			infoUrl: "can.yaman.me",
+			appName: "Spring Boot App",
+			artifactId: "$projectGroup.$projectName",
+			artifactVersion: projectVersion,
+			specDir: "$buildDir/asciidoc/spec/",
+			snippetDir: "$buildDir/asciidoc/snippet/"
+	]
+}
+
+
+openApiAsciidoc.doFirst(){
+	copy {
+		from "$projectDir/src/docs/spec/"
+		into "$buildDir/asciidoc/spec"
+	}
+	copy {
+		from "$projectDir/src/docs/snippet/"
+		into "$buildDir/asciidoc/snippet"
+	}
+}
+
+asciidoctor {
+	dependsOn openApiAsciidoc
+	sourceDir "src/docs/asciidoc"
+	attributes = [
+			doctype: 'book',
+			toc: 'left',
+			toclevels: '3',
+			numbered: '',
+			sectlinks: '',
+			sectanchors: '',
+			hardbreaks: '',
+			openApiDir: "${buildDir}/asciidoc",
+			sourceDir: "src/docs/spec",
+			specDir: "spec/",
+			snippetDir: "snippet/"
+	]
+	outputDir file("${buildDir}/docs")
+	doLast {
+		copy {
+			from "${buildDir}/asciidoc/snippet"
+			into "$buildDir/resources/main/asciidoc"
+		}
+		copy {
+			from "${outputDir}"
+			into "$buildDir/resources/main/asciidoc"
+		}
+	}
+}
+
+processResources.dependsOn(asciidoctor)

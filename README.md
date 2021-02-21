@@ -5,7 +5,7 @@ The most basic spring boot microservice
 Build Tool: Gradle
 Language: Kotlin
 Spring Boot Version: 2.4
-Tags: REST,OpenApi,Actuator,JIB,ktlint,
+Tags: REST,OpenApi,Actuator,JIB,ktlint,aciidoc
 
 ## How to run?
 
@@ -64,4 +64,18 @@ GET http://localhost/actuator/info
 GET http://localhost/actuator/health  
 ```
 
+## Documentation
 
+Project is structered as to generate microservice documentation. OpenApi v3 former swagger doc is also included. 
+Swagger-UI is awesome tool but not satisfy all requirements. You can enrich openapi doc output via annotation but I don't perefer that. 
+These annotations contradict the some principles. 
+Without these annotations function name and functional annotation should express the meaning 
+beacuse of that I need another level of layer for the documentation. 
+In addition to that I don't want to write down the same info again and again in another format. 
+At the end code generated openapi doc file converted to asciidoc and enriched by document generation step. 
+
+## Accessing documentation
+
+You can upload document at the central place like confluence but confluence gradle plugin and 
+cwiki converter has some issue just because of that I prefer self contained version.
+You can access api doc from swagger doc desctiontion field link or just *http://localhost:8080/asciidoc/index.html* link.
