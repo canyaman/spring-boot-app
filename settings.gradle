@@ -13,12 +13,5 @@ pluginManagement {
 	}
 }
 
-buildCache {
-	remote(HttpBuildCache) {
-		url = 'http://gradle-build-cache.openshift-pipelines.svc/cache/'
-		push = true
-		allowInsecureProtocol = true
-	}
-}
 apply from: './version.gradle'
 rootProject.name = projectName
