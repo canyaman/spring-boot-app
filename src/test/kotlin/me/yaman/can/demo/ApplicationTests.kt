@@ -2,18 +2,26 @@ package me.yaman.can.demo
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.TextNode
-import me.yaman.can.demo.model.CurrentTime
+import me.yaman.can.demo.controller.TimeController
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.time.Instant
+import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.LocalDateTime
 
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = [
+    ]
 )
+@ActiveProfiles("r2dbc", "postgresql-test")
+@Testcontainers
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ApplicationTests(
     @Autowired val webClient: WebTestClient
 ) {
@@ -21,14 +29,16 @@ class ApplicationTests(
 
     @Test
     fun contextLoads() {
+        log.info("Spring context is loaded.")
+        Assertions.assertThat(webClient).isNotNull
     }
 
     @Test
     fun timeControllerNowTest() {
         val response = webClient.get().uri("/time/now")
             .exchange()
-            .expectStatus().isOk.expectBody(CurrentTime::class.java).returnResult()
-        Assertions.assertThat(response.responseBody?.now).isBefore(Instant.now())
+            .expectStatus().isOk.expectBody(TimeController.ServerTime::class.java).returnResult()
+        Assertions.assertThat(response.responseBody?.local).isBefore(LocalDateTime.now())
     }
 
     @Test

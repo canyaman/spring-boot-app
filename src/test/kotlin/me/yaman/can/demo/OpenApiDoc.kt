@@ -25,7 +25,7 @@ import java.nio.file.StandardCopyOption
 @EnableAutoConfiguration()
 @Tag("open-api")
 class OpenApiDoc(
-    @LocalServerPort val port: Integer,
+    @LocalServerPort val port: Int,
     @Value("\${spring.application.name}") val appName: String
 ) {
     private val yamlFilePath = "src/main/resources/api-docs/$appName.yml"

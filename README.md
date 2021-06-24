@@ -79,3 +79,23 @@ At the end code generated openapi doc file converted to asciidoc and enriched by
 You can upload document at the central place like confluence but confluence gradle plugin and 
 cwiki converter has some issue just because of that I prefer self contained version.
 You can access api doc from swagger doc desctiontion field link or just *http://localhost:8080/asciidoc/index.html* link.
+
+## Local Env
+Only use h2-embedded profile
+Activate local profile group for local development.
+```
+SPRING_PROFILES_ACTIVE=local
+```
+
+## Docker Compose Env
+Run docker compose containers
+```
+docker-compose up
+```
+
+Activate docker-compose profile group for local container configurations.
+```
+SPRING_PROFILES_ACTIVE=docker-compose
+```
+
+Database browser can be reached by http://localhost:8008 address.  

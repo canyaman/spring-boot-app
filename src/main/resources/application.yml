@@ -1,14 +1,20 @@
+project.name: spring-boot
 spring:
-  profiles.group.local: asciidoc
-  #profiles.group.container:
+  profiles.group.local: asciidoc,r2dbc,h2-embedded,h2-console,migrate,public
+  profiles.group.container: r2dbc,postgresql,oauth2,cors
+  profiles.group.open-api: asciidoc,r2dbc,h2-embedded,h2-console,migrate,public
+  profiles.group.docker-compose: asciidoc,r2dbc,postgresql,h2-console,migrate,oauth2,cors
   profiles.active: local
-  application.name: spring-boot-app
+  application.name: ${project.name}-app
   jackson:
     timeZone: Europe/Istanbul
+  devtools:
+    restart:
+      exclude: api-docs/**,asciidoc/**
 # Server
 server:
   port: 8080
-  forwardHeadersStrategy: NATIVE
+  forwardHeadersStrategy: FRAMEWORK
 # Logging
 logging:
   level:
@@ -20,6 +26,13 @@ springdoc:
     enabled: true
   apiDocs.enabled: true
   packagesToScan: me.yaman.can
+# Database
+database:
+  endpoint: localhost:5432
+  name: spring_app
+  user: postgres
+  password: passw0rd
+  vendor: postgresql
 ---
 spring.config.activate.onCloudPlatform: kubernetes
 
@@ -38,4 +51,195 @@ management:
       group:
         readiness:
           include: readinessState, diskSpace, ping
+---
+spring.config.activate.onProfile: h2-console
+
+spring:
+  datasource:
+    url: jdbc:${database.vendor}://${database.endpoint}/${database.name}
+    username: ${database.user}
+    password: ${database.password}
+  h2.console:
+    enabled: true
+    path: /
+    port: 8008
+---
+spring.config.activate.onProfile: r2dbc
+
+spring:
+  r2dbc:
+    username: ${database.user}
+    password: ${database.password}
+    pool:
+      validationQuery: SELECT 1
+---
+spring.config.activate.onProfile: h2-embedded
+
+database:
+  name: spring_app
+  user: sa
+  password: ''
+  vendor: h2
+
+spring:
+  r2dbc:
+    url: r2dbc:${database.vendor}:mem:///${database.name}?options=DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+  datasource:
+    url: jdbc:${database.vendor}:mem:${database.name}?options=DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+---
+spring.config.activate.onProfile: postgresql
+
+database:
+  vendor: postgresql
+  name: spring_app
+  user: postgres
+  password: passw0rd
+
+spring:
+  r2dbc:
+    url: r2dbc:pool:${database.vendor}://${database.endpoint}/${database.name}
+---
+spring.config.activate.onProfile: migrate
+
+r2dbc:
+  migrate:
+    enable: true
+    migrationsTable: migration_${spring.application.name}
+    migrationsLockTable: migration_${spring.application.name}_lock
+    dialect: ${database.vendor}
+    resourcesPaths:
+      - classpath:/db/migration/${database.vendor}/*.sql
+---
+spring.config.activate.onProfile: liquibase
+r2dbc.migrate.enable: false
+spring:
+  autoconfigure:
+    exclude: >-
+      name.nkonev.r2dbc.migrate.autoconfigure.R2dbcMigrateAutoConfiguration
+---
+spring.config.activate.onProfile: public
+debug: true
+---
+spring.config.activate.onProfile: oauth2
+
+keycloak:
+  realm: ${project.name}
+  endpoint: https://keycloak.local
+
+springdoc:
+  swaggerUi:
+    oauth:
+      clientId: ${project.name}-api
+      usePkceWithAuthorizationCodeGrant: true
+      realm: ${keycloak.realm}
+      appName: ${spring.application.name}
+      scopeSeparator: " "
+      scopes: "openid profile"
+  oAuthFlow:
+    issuerUri: ${keycloak.endpoint}/auth/realms/${keycloak.realm}
+
+spring.security:
+  oauth2:
+    resourceserver:
+      jwt:
+        issuerUri: ${keycloak.endpoint}/auth/realms/${keycloak.realm}
+        jwkSetUri: ${keycloak.endpoint}/auth/realms/${keycloak.realm}/protocol/openid-connect/certs
+    client:
+      registration:
+        keycloak:
+          clientId: ${project.name}-app
+          clientSecret: a5273634-0a06-4073-922a-f3718ada3fe8
+          scope: roles,profile,email
+          clientName: Keycloak
+      provider:
+        keycloak:
+          issuerUri: ${keycloak.endpoint}/auth/realms/${keycloak.realm}
+---
+spring.config.activate.onProfile: web-test
+
+---
+spring.config.activate.onProfile: postgresql-test
+r2dbc.migrate:
+  acquireLockMaxRetries: 1
+  connectionMaxRetries: 1
+  validationQuery: "SELECT '1' AS RESULT"
+  validationQueryExpectedResultValue: '1'
+  resourcesPaths:
+    - file:src/main/resources/db/migration/postgresql/*.sql
+database:
+  vendor: postgresql
+  name: spring_app_test
+  username: postgres
+  password: ''
+spring:
+  r2dbc:
+    url: r2dbc:tc:postgresql:///${database.name}?TC_IMAGE_TAG=12
+    username: ${database.user}
+    password: ${database.password}
+  autoconfigure:
+    exclude: >-
+      org.springframework.boot.actuate.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration,
+      org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+---
+spring.config.activate.onProfile: postgresql-tc
+database:
+  vendor: postgresql
+  name: spring_app_test
+  username: postgres
+  password: ''
+r2dbc.migrate.enable: false
+spring:
+  r2dbc:
+    url: r2dbc:tc:postgresql:///${database.name}?TC_IMAGE_TAG=12
+    username: ${database.user}
+    password: ${database.password}
+  autoconfigure:
+    exclude: >-
+      org.springframework.boot.actuate.autoconfigure.security.reactive.ReactiveManagementWebSecurityAutoConfiguration,
+      org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration,
+      name.nkonev.r2dbc.migrate.autoconfigure.R2dbcMigrateAutoConfiguration
+---
+spring.config.activate.onProfile: test-migrate
+
+r2dbc:
+  migrate:
+    enable: true
+    migrationsTable: migration_${spring.application.name}
+    migrationsLockTable: migration_${spring.application.name}_lock
+    dialect: ${database.vendor}
+    resourcesPaths:
+      - file:src/main/resources/db/migration/${database.vendor}/*.sql
+---
+spring.config.activate.onProfile: cors
+web:
+  corsConfiguration:
+    allowedOrigins:
+      - https://spring-boot.local
+      - http://localhost:3000
+    allowedOriginPatterns:
+      - https://*.local
+    maxAge: 8000
+    allowCredentials: true
+    allowedMethods:
+      - HEAD
+      - OPTIONS
+      - GET
+      - POST
+      - PUT
+      - DELETE
+    allowedHeaders:
+      - Authorization
+      - DNT
+      - User-Agent
+      - Accept
+      - X-Requested-With
+      - If-Modified-Since
+      - Cache-Control
+      - Content-Type
+      - Referer
+      - Range
+      - Origin
+    exposeHeaders:
+      - Content-Length
+      - Content-Range
 ---

@@ -1,23 +1,241 @@
 openapi: 3.0.1
 info: {title: spring-boot-app, description: Spring boot application auto generated
     OpenApi doc., version: 0.0.1-SNAPSHOT}
+externalDocs: {description: Online Documentation, url: /asciidoc/index.html}
 servers:
 - {url: 'http://spring-boot-app:80', description: Generated server url}
 paths:
-  /time/now:
+  /simple/{id}:
     get:
-      tags: [time-controller]
-      operationId: now
+      tags: [simple-controller]
+      operationId: readModel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
       responses:
         '200':
           description: OK
           content:
             '*/*':
-              schema: {$ref: '#/components/schemas/CurrentTime'}
+              schema: {$ref: '#/components/schemas/SimpleModel'}
+    put:
+      tags: [simple-controller]
+      operationId: updateModel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SimpleModel'}
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema: {$ref: '#/components/schemas/SimpleModel'}
+    delete:
+      tags: [simple-controller]
+      operationId: deleteModel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+      responses:
+        '200': {description: OK}
+  /simple/:
+    post:
+      tags: [simple-controller]
+      operationId: createModel
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SimpleModel'}
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema: {$ref: '#/components/schemas/SimpleModel'}
+  /time/now:
+    get:
+      tags: [time-controller]
+      operationId: now
+      parameters:
+      - name: epoch
+        in: query
+        description: HTTP request sender Epoch Time in seconds
+        required: false
+        schema: {type: integer, format: int64}
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema: {$ref: '#/components/schemas/ServerTime'}
+  /simple/list:
+    get:
+      tags: [simple-controller]
+      operationId: listModels
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema: {minimum: 0, type: integer, format: int32, default: 0}
+      - name: size
+        in: query
+        required: false
+        schema: {maximum: 100, type: integer, format: int32, default: 20}
+      - name: sort
+        in: query
+        required: false
+        schema: {type: string}
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/SimpleModel'}
+  /simple/count:
+    get:
+      tags: [simple-controller]
+      operationId: count
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema: {$ref: '#/components/schemas/PageCount'}
 components:
   schemas:
-    CurrentTime:
-      required: [now]
+    SimpleModel:
+      required: [counter, createDate, name]
       type: object
       properties:
-        now: {type: string, format: date-time}
+        id: {type: integer, format: int64}
+        name: {type: string}
+        counter: {minimum: 0, type: integer, format: int64}
+        createDate: {type: string, format: date-time}
+        updateDate: {type: string, format: date-time}
+    LocalTime:
+      type: object
+      properties:
+        hour: {type: integer, format: int32}
+        minute: {type: integer, format: int32}
+        second: {type: integer, format: int32}
+        nano: {type: integer, format: int32}
+    ServerTime:
+      required: [epoch, local, offset, utc, zone]
+      type: object
+      properties:
+        utc: {type: string, format: date-time}
+        epoch: {type: integer, format: int64}
+        local: {type: string, format: date-time}
+        zone:
+          type: object
+          properties:
+            id: {type: string}
+            rules:
+              type: object
+              properties:
+                fixedOffset: {type: boolean}
+                transitions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      offsetBefore:
+                        type: object
+                        properties:
+                          totalSeconds: {type: integer, format: int32}
+                          id: {type: string}
+                      offsetAfter:
+                        type: object
+                        properties:
+                          totalSeconds: {type: integer, format: int32}
+                          id: {type: string}
+                      gap: {type: boolean}
+                      overlap: {type: boolean}
+                      dateTimeAfter: {type: string, format: date-time}
+                      duration:
+                        type: object
+                        properties:
+                          seconds: {type: integer, format: int64}
+                          negative: {type: boolean}
+                          zero: {type: boolean}
+                          nano: {type: integer, format: int32}
+                          units:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                durationEstimated: {type: boolean}
+                                dateBased: {type: boolean}
+                                timeBased: {type: boolean}
+                      instant: {type: string, format: date-time}
+                      dateTimeBefore: {type: string, format: date-time}
+                transitionRules:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      month:
+                        type: string
+                        enum: [JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST,
+                          SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER]
+                      timeDefinition:
+                        type: string
+                        enum: [UTC, WALL, STANDARD]
+                      standardOffset:
+                        type: object
+                        properties:
+                          totalSeconds: {type: integer, format: int32}
+                          id: {type: string}
+                      offsetBefore:
+                        type: object
+                        properties:
+                          totalSeconds: {type: integer, format: int32}
+                          id: {type: string}
+                      offsetAfter:
+                        type: object
+                        properties:
+                          totalSeconds: {type: integer, format: int32}
+                          id: {type: string}
+                      dayOfWeek:
+                        type: string
+                        enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY,
+                          SUNDAY]
+                      dayOfMonthIndicator: {type: integer, format: int32}
+                      localTime: {$ref: '#/components/schemas/LocalTime'}
+                      midnightEndOfDay: {type: boolean}
+        offset:
+          type: object
+          properties:
+            totalSeconds: {type: integer, format: int32}
+            id: {type: string}
+        diff: {type: integer, format: int64}
+    PageCount:
+      required: [defaultOrderBy, defaultPageSize, maxPageSize, orderProperties, pageSizes,
+        totalElements, totalPages]
+      type: object
+      properties:
+        totalPages: {type: integer, format: int64}
+        totalElements: {type: integer, format: int64}
+        defaultPageSize: {type: integer, format: int32}
+        maxPageSize: {type: integer, format: int32}
+        defaultOrderBy: {type: string}
+        pageSizes:
+          type: array
+          items: {type: integer, format: int32}
+        orderProperties:
+          type: array
+          items: {type: string}
